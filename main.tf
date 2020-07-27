@@ -1,5 +1,9 @@
-module "vpc" {
-    source  = "terraform-google-modules/network/google/modules/vpc"
+provider "google" {
+  version = "~> 3.3.0"
+}
+
+module "network_vpc" {
+    source  = "terraform-google-modules/network/google"
     version = "2.4.0"
     
     project_id   = "premium-silicon-282607"
