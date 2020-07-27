@@ -79,10 +79,3 @@ steps:
         echo "*******************************************************************************"
       fi
 # [END tf-apply]
-- id: 'tf push state'
-  name: 'hashicorp/terraform:0.12.29'
-  entrypoint: 'sh'
-  args:
-  - 'c'
-  - |
-      terraform state push ${BRANCH_NAME}-PLAN.tfplan
