@@ -58,7 +58,7 @@ steps:
           sed -i -e 's/  +/+/g' "${BRANCH_NAME}-PLAN.json"; 
           sed -i -e 's/  ~/~/g' "${BRANCH_NAME}-PLAN.json"; 
           sed -i -e 's/  -/-/g' "${BRANCH_NAME}-PLAN.json"; 
-          MESSAGE=$(cat "${BRANCH_NAME}_PLAN.json"); 
+          MESSAGE=$(cat "${BRANCH_NAME}-PLAN.json"); 
           ;;
       esac
       
