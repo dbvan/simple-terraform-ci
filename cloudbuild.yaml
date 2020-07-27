@@ -71,7 +71,7 @@ steps:
   args: 
   - '-c'
   - | 
-      if if [ "${BRANCH_NAME}" = "dev" ] || [ "${BRANCH_NAME}" = "master" ]; then
+      if [ "${BRANCH_NAME}" = "dev" ] || [ "${BRANCH_NAME}" = "master" ]; then
         terraform apply -auto-approve
       else
         echo "***************************** SKIPPING APPLYING *******************************"
