@@ -34,7 +34,7 @@ steps:
   args: 
   - '-c'
   - | 
-      apt-get install jq -y
+      apk add jq -y
       alias convert_report="jq -r '([.resource_changes[].change.actions?]|flatten)|{\"create\":(map(select(.==\"create\"))|length),\"update\":(map(select(.==\"update\"))|length),\"delete\":(map(select(.==\"delete\"))|length)}'"
       terraform plan -out '${BRANCH_NAME}.tfplan'
       terraform show --json '${BRANCH_NAME}.tfplan' | convert_report > '${BRANCH_NAME}-PLAN.json'     
