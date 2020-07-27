@@ -1,18 +1,3 @@
-# Copyright 2019 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 steps:
 - id: 'branch name'
   name: 'alpine'
@@ -30,24 +15,8 @@ steps:
   args: 
   - '-c'
   - |
-      if [ -d "environments/$BRANCH_NAME/" ]; then
-        cd environments/$BRANCH_NAME
-        export TF_LOG=DEBUG
-        terraform init
-      else
-        for dir in environments/*/
-        do 
-          cd ${dir}   
-          env=${dir%*/}
-          env=${env#*/}
-          echo ""
-          echo "*************** TERRAFORM INIT ******************"
-          echo "******* At environment: ${env} ********"
-          echo "*************************************************"
-          terraform init || exit 1
-          cd ../../
-        done
-      fi 
+      export TF_LOG=DEBUG
+      terraform init || exit 1
 
 # [START tf-validate]
 - id: 'tf validate'
@@ -56,24 +25,8 @@ steps:
   args: 
   - '-c'
   - | 
-      if [ -d "environments/$BRANCH_NAME/" ]; then
-        cd environments/$BRANCH_NAME
-        terraform validate
-      else
-        for dir in environments/*/
-        do 
-          cd ${dir}   
-          env=${dir%*/}
-          env=${env#*/}  
-          echo ""
-          echo "*************** TERRAFOM validate ******************"
-          echo "******* At environment: ${env} ********"
-          echo "*************************************************"
-          terraform validate || exit 1
-          terraform fmt -check=true || exit 1
-          cd ../../
-        done
-      fi 
+      terraform validate || exit 1
+      terraform fmt -check=true || exit 1
 
 # [START tf-plan]
 - id: 'tf plan'
@@ -84,25 +37,8 @@ steps:
   - | 
       apt-get install jq -y
       alias convert_report="jq -r '([.resource_changes[].change.actions?]|flatten)|{\"create\":(map(select(.==\"create\"))|length),\"update\":(map(select(.==\"update\"))|length),\"delete\":(map(select(.==\"delete\"))|length)}'"
-      if [ -d "environments/$BRANCH_NAME/" ]; then
-        cd environments/$BRANCH_NAME
-        terraform plan -out '${BRANCH_NAME}.tfplan'
-        terraform show --json '${BRANCH_NAME}.tfplan' | convert_report > '${BRANCH_NAME}-PLAN.json'
-      else
-        for dir in environments/*/
-        do 
-          cd ${dir}   
-          env=${dir%*/}
-          env=${env#*/}  
-          echo ""
-          echo "*************** TERRAFOM PLAN ******************"
-          echo "******* At environment: ${env} ********"
-          echo "*************************************************"
-          terraform plan -out ${env}.tfplan || exit 1
-          terraform show --json ${env}.tfplan | convert_report > '${env}-PLAN.json'
-          cd ../../
-        done
-      fi 
+      terraform plan -out '${BRANCH_NAME}.tfplan'
+      terraform show --json '${BRANCH_NAME}.tfplan' | convert_report > '${BRANCH_NAME}-PLAN.json'     
 # [END tf-plan]
 
 # [Start tf-drift]
@@ -112,49 +48,21 @@ steps:
   args:
   - '-c'
   - |
-      if [ -d "environments/$BRANCH_NAME/" ]; then
-        cd environments/$BRANCH_NAME
-        terraform plan -detailed-exitcode -out="${BRANCH_NAME}-PLAN.json" 2> /dev/null || ec=$?
-        case $ec in
-        0) echo "No Changes Found"; exit 0;;
-        1) printf '%s\n' "Command exited with non-zero"; exit 1;;
-        2) echo "Changes Found, opening Issue"; 
-           echo \`\`\`diff > "${BRANCH_NAME}-PLAN.json"; 
-           terraform show -no-color ${BRANCH_NAME}-PLAN.tfplan | tee -a "${BRANCH_NAME}-PLAN.json"; 
-           echo \`\`\` >> "${BRANCH_NAME}-PLAN.json"; 
-           sed -i -e 's/  +/+/g' "${BRANCH_NAME}-PLAN.json"; 
-           sed -i -e 's/  ~/~/g' "${BRANCH_NAME}-PLAN.json"; 
-           sed -i -e 's/  -/-/g' "${BRANCH_NAME}-PLAN.json"; 
-           MESSAGE=$(cat "${BRANCH_NAME}_PLAN.json"); 
-           ;;
-        esac
-      else
-        for dir in environments/*/
-        do 
-          cd ${dir}   
-          env=${dir%*/}
-          env=${env#*/}  
-          echo ""
-          echo "*************** TERRAFOM PLAN ******************"
-          echo "******* At environment: ${env} ********"
-          echo "*************************************************"
-         terraform plan -detailed-exitcode -out="${env}_PLAN.json" 2> /dev/null || ec=$?
-          case $ec in
-          0) echo "No Changes Found"; exit 0;;
-          1) printf '%s\n' "Command exited with non-zero"; exit 1;;
-          2) echo "Changes Found, opening Issue"; 
-            echo \`\`\`diff > "${env}-PLAN.json"; 
-            terraform show -no-color ${env}-PLAN | tee -a "${env}-PLAN.json"; 
-            echo \`\`\` >> "${env}-PLAN.json"; 
-            sed -i -e 's/  +/+/g' "${env}-PLAN.json"; 
-            sed -i -e 's/  ~/~/g' "${env}-PLAN.json"; 
-            sed -i -e 's/  -/-/g' "${env}-PLAN.json"; 
-            MESSAGE=$(cat "${env}-PLAN.json"); 
-            ;;
-          esac
-          cd ../../
-        done
-      fi 
+      terraform plan -detailed-exitcode -out="${BRANCH_NAME}-PLAN.json" 2> /dev/null || ec=$?
+      case $ec in
+      0) echo "No Changes Found"; exit 0;;
+      1) printf '%s\n' "Command exited with non-zero"; exit 1;;
+      2) echo "Changes Found, opening Issue"; 
+          echo \`\`\`diff > "${BRANCH_NAME}-PLAN.json"; 
+          terraform show -no-color ${BRANCH_NAME}-PLAN.tfplan | tee -a "${BRANCH_NAME}-PLAN.json"; 
+          echo \`\`\` >> "${BRANCH_NAME}-PLAN.json"; 
+          sed -i -e 's/  +/+/g' "${BRANCH_NAME}-PLAN.json"; 
+          sed -i -e 's/  ~/~/g' "${BRANCH_NAME}-PLAN.json"; 
+          sed -i -e 's/  -/-/g' "${BRANCH_NAME}-PLAN.json"; 
+          MESSAGE=$(cat "${BRANCH_NAME}_PLAN.json"); 
+          ;;
+      esac
+      
 #[End tf-Dritf]
 
 # [START tf-apply]
@@ -164,8 +72,7 @@ steps:
   args: 
   - '-c'
   - | 
-      if [ -d "environments/$BRANCH_NAME/" ]; then
-        cd environments/$BRANCH_NAME      
+      if if [ "${BRANCH_NAME}" = "dev" ] || [ "${BRANCH_NAME}" = "master" ]; then
         terraform apply -auto-approve
       else
         echo "***************************** SKIPPING APPLYING *******************************"

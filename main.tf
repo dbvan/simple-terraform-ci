@@ -1,7 +1,7 @@
 module "vpc" {
-    source  = "terraform-google-modules/network/google"
-    version = "~> 2.4"
-
+    source  = "terraform-google-modules/network/google/modules/vpc"
+    version = "2.4.0"
+    
     project_id   = "premium-silicon-282607"
     network_name = "example-vpc"
     routing_mode = "GLOBAL"
