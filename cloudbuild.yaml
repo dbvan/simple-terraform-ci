@@ -10,7 +10,7 @@ steps:
       echo "***********************"
 
 - id: 'tf init'
-  name: 'hashicorp/terraform:0.11.14'
+  name: 'hashicorp/terraform:0.12.29'
   entrypoint: 'sh'
   args: 
   - '-c'
@@ -20,22 +20,21 @@ steps:
 
 # [START tf-validate]
 - id: 'tf validate'
-  name: 'hashicorp/terraform:0.11.14'
+  name: 'hashicorp/terraform:0.12.29'
   entrypoint: 'sh'
   args: 
   - '-c'
   - | 
-      terraform validate || exit 1
-      terraform fmt -check=true || exit 1
+      terraform validate -no-color
 
 # [START tf-plan]
 - id: 'tf plan'
-  name: 'hashicorp/terraform:0.11.14'
+  name: 'hashicorp/terraform:0.12.29'
   entrypoint: 'sh'
   args: 
   - '-c'
   - | 
-      apt-get install jq -y
+      apk add jq
       alias convert_report="jq -r '([.resource_changes[].change.actions?]|flatten)|{\"create\":(map(select(.==\"create\"))|length),\"update\":(map(select(.==\"update\"))|length),\"delete\":(map(select(.==\"delete\"))|length)}'"
       terraform plan -out '${BRANCH_NAME}.tfplan'
       terraform show --json '${BRANCH_NAME}.tfplan' | convert_report > '${BRANCH_NAME}-PLAN.json'     
@@ -43,12 +42,12 @@ steps:
 
 # [Start tf-drift]
 - id: 'tf drift'
-  name: 'hashicorp/terraform:0.11.14'
+  name: 'hashicorp/terraform:0.12.29'
   entrypoint: 'sh'
   args:
   - '-c'
   - |
-      terraform plan -detailed-exitcode -out="${BRANCH_NAME}-PLAN.json" 2> /dev/null || ec=$?
+      terraform plan -detailed-exitcode -out="${BRANCH_NAME}-PLAN.tfplan" 2> /dev/null || ec=$?
       case $ec in
       0) echo "No Changes Found"; exit 0;;
       1) printf '%s\n' "Command exited with non-zero"; exit 1;;
@@ -59,7 +58,7 @@ steps:
           sed -i -e 's/  +/+/g' "${BRANCH_NAME}-PLAN.json"; 
           sed -i -e 's/  ~/~/g' "${BRANCH_NAME}-PLAN.json"; 
           sed -i -e 's/  -/-/g' "${BRANCH_NAME}-PLAN.json"; 
-          MESSAGE=$(cat "${BRANCH_NAME}_PLAN.json"); 
+          MESSAGE=$(cat "${BRANCH_NAME}-PLAN.json"); 
           ;;
       esac
       
@@ -67,16 +66,16 @@ steps:
 
 # [START tf-apply]
 - id: 'tf apply'
-  name: 'hashicorp/terraform:0.11.14'
+  name: 'hashicorp/terraform:0.12.29'
   entrypoint: 'sh'
   args: 
   - '-c'
   - | 
-      if if [ "${BRANCH_NAME}" = "dev" ] || [ "${BRANCH_NAME}" = "master" ]; then
+      if [ "${BRANCH_NAME}" = "dev" ] || [ "${BRANCH_NAME}" = "master" ]; then
         terraform apply -auto-approve
       else
         echo "***************************** SKIPPING APPLYING *******************************"
         echo "Branch '$BRANCH_NAME' does not represent an oficial environment."
         echo "*******************************************************************************"
       fi
-# [END tf-apply]      
+# [END tf-apply]
